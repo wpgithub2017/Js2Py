@@ -404,13 +404,24 @@ def LabeledStatement(type, label, body):
     defs = ''
     if inside.startswith('while ') or inside.startswith('for ') or inside.startswith('#for'):
         # we have to add contine label as well...
-        # 3 or 1 since #for loop type has more lines before real for.
-        sep = 1 if not inside.startswith('#for') else 3
+        sep = 1
         cont_label = get_continue_label(label['name'])
         temp = inside.split('\n')
+
+        if inside.startswith('#for'):
+            for statement in temp:
+                if statement.startswith("#") or statement.startswith("var."):
+                   sep += 1
+                else:
+                   break
+
+        # exclude any break flag (__doUpdate) resets that will end up misaligned 
+        if temp[-2] == "__doUpdate = True":
+           temp.pop(-2)
+
         injected = 'try:\n'+'\n'.join(temp[sep:])
         injected += 'except %s:\n    pass\n'%cont_label
-        inside = '\n'.join(temp[:sep])+'\n'+indent(injected)
+        inside = '\n'.join(temp[:sep])+'\n'+ indent(injected) + "__doUpdate = True\n"
         defs += 'class %s(Exception): pass\n'%cont_label
     break_label = get_break_label(label['name'])
     inside = 'try:\n%sexcept %s:\n    pass\n'% (indent(inside), break_label)
