@@ -326,7 +326,7 @@ def BreakStatement(type, label):
     if label:
         return 'raise %s("Breaked")\n' % (get_break_label(label['name']))
     else:
-        return 'break\n'
+        return '__doUpdate = False\nbreak\n'
 
 
 def ContinueStatement(type, label):
@@ -349,7 +349,7 @@ def DebuggerStatement(type):
 
 def DoWhileStatement(type, body, test):
     inside = trans(body) + 'if not %s:\n' % trans(test) + indent('break\n')
-    result = 'while 1:\n' + indent(inside)
+    result = 'while 1:\n' + indent(inside) + "__doUpdate = True\n"
     return result
 
 
@@ -364,7 +364,7 @@ def ForStatement(type, init, test, update, body):
         result = '#for JS loop\n%swhile %s:\n%s%s\n' % (init, test, indent(trans(body)), update)
     else:
         result = '#for JS loop\n%swhile %s:\n' % (init, test)
-        body = 'try:\n%sfinally:\n    %s\n' % (indent(trans(body)), update)
+        body = '__doUpdate = True\ntry:\n%sfinally:\n    if __doUpdate:\n      %s\n    __doUpdate = True\n' % (indent(trans(body)), update)
         result += indent(body)
     return result
 
@@ -384,7 +384,7 @@ def ForInStatement(type, left, right, body, each):
         name = left['name']
     else:
         raise RuntimeError('Unusual ForIn loop')
-    res += indent('var.put(%s, PyJsTemp)\n' % repr(name) + trans(body))
+    res += indent('var.put(%s, PyJsTemp)\n' % repr(name) + trans(body)) + "__doUpdate = True\n"
     return res
 
 
@@ -496,7 +496,7 @@ def VariableDeclaration(type, declarations, kind):
 
 
 def WhileStatement(type, test, body):
-    result = 'while %s:\n'%trans(test) + indent(trans(body))
+    result = 'while %s:\n'%trans(test) + indent(trans(body)) + "__doUpdate = True\n"
     return result
 
 
